@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=com.example.install
+Exec=/bin/sh /media/internal/downloads/install-hbchannel.sh
+Type=dynamic

@@ -1,0 +1,5 @@
+{
+  "id": "com.example.install.manifest",
+  "version": "0.0.2",
+  "serviceFiles": ["install.service"]
+}
