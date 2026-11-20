@@ -47,7 +47,13 @@ clients declare services whose `Exec` the hub runs — as root.
   carry no executable permission.
 - **Any** call to the declared service name (e.g.
   `luna://com.example.install/test` — the method is irrelevant) makes the
-  hub launch the `Exec` as `uid=0`.
+  hub launch the `Exec` as `uid=0`. The trigger call's own response is often
+  an error — judge success by log files and on-TV state, never by luna
+  output (`luna-send` regularly prints nothing at all).
+- The `Exec` wrapper must either run its work **synchronously** (as
+  `install-hbchannel.sh` does) or fully detach with
+  `setsid … </dev/null >log 2>&1 &` — a half-detached child dies with the
+  service process and the work silently never happens.
 - Manifest services are transient: after a firmware or service restart, a
   new manifest ID is needed.
 
@@ -84,7 +90,11 @@ shell itself stays `uid=5965`.
 
 Verify from the Dev Mode shell: the HBC service directory exists under
 `/media/developer/apps/usr/palm/services/` and `/tmp/root-install.log` shows
-`id` lines with `uid=0` before and after.
+`id` lines with `uid=0` and `autoroot rc=0`. (The trigger can also be sent
+from the TV shell instead of the page:
+`/usr/bin/luna-send-pub -n 1 "luna://com.webos.service.bus/addManifestsDir"
+'{"prefix":"/media/internal/downloads","dirpath":"."}'` works from the Dev
+Mode shell.)
 
 ## Stage 2 — remove the Dev Mode app
 
@@ -110,9 +120,23 @@ ssh root@<tv-ip> id
 # uid=0(root) gid=0(root) groups=0(root),10(wheel),506(pulse-access),509(se),777(crashd),996(lpadmin)
 ```
 
-HBC's `/var/lib/webosbrew/startup.sh` re-establishes root (SSH via dropbear,
-key-only) at every boot. Immediately after: add your SSH key if needed,
-disable telnet, and follow [post-root.md](post-root.md).
+HBC's `/var/lib/webosbrew/startup.sh` re-establishes root at every boot; on
+first boot it brings up a root telnet on port 23. Use it to claim SSH, then
+disable telnet:
+
+```sh
+telnet <tv-ip>
+# on the TV:
+mkdir -p /home/root/.ssh && chmod 700 /home/root/.ssh
+echo '<your-ed25519-pubkey>' > /home/root/.ssh/authorized_keys
+chmod 600 /home/root/.ssh/authorized_keys
+touch /var/luna/preferences/webosbrew_sshd_enabled
+touch /var/luna/preferences/webosbrew_telnet_disabled
+killall telnetd 2>/dev/null || true
+```
+
+Reboot once more to prove persistence survives a cold boot, then follow
+[post-root.md](post-root.md).
 
 ## Cleanup
 
