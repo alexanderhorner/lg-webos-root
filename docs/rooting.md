@@ -23,12 +23,32 @@ clients declare services whose `Exec` the hub runs — as root.
 
 - A TV on webOS 11.2.0 / firmware 43.21.98 (exact combination verified; the
   primitives are long-standing webOS APIs).
-- LG Developer Mode set up with the webOS CLI (`ares-setup-device` etc.) —
-  used here to launch the stock browser at the payload page. Any other way
-  to open `com.webos.app.tinybrowser` at a URL works too.
 - A machine on the same LAN serving the [payload](../payload/README.md)
   over HTTP, with SlopBro's `autoroot.sh` and the Homebrew Channel IPK in
-  `root/`.
+  `root/`. (`ipconfig getifaddr en0` finds the host IP on macOS.)
+- An ed25519 SSH key for claiming root in stage 4
+  (`ssh-keygen -t ed25519` if you have none).
+
+### Developer Mode setup
+
+Everything below launches through LG Developer Mode. It is never root —
+its shell runs as `uid=5965` (`prisoner`).
+
+1. Create a free LG developer account at
+   <https://webostv.developer.lge.com> (full guide: LG's
+   [webOS TV CLI docs](https://webostv.developer.lge.com/develop/tools/webos-tv-cli-dev-guide)).
+2. On the TV, install the **Developer Mode** app from the LG Content Store,
+   sign in, and enable it — the TV reboots.
+3. On the host, the commands here run via
+   `npx --yes --package @webos-tools/cli <tool>`, so no global install is
+   needed. Register the TV once:
+   `ares-setup-device -a` (name, TV IP from Settings → Network, port 9922).
+4. Pair once: `ares-novacom --device <device> --getkey` — accept the prompt
+   on the TV and enter the passphrase it displays. If the TV-side prompt
+   times out before you accept, just retry.
+5. A Dev Mode session expires after 50 hours of TV runtime (renew in the
+   app). This only matters until stage 2 — rooting removes the Dev Mode app
+   entirely.
 
 ## How it works
 
